@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Finance Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card dashboard-card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Income</h5>
+                <h2 class="card-text">₹{{ "%.2f"|format(total_income) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card dashboard-card bg-danger text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Expenses</h5>
+                <h2 class="card-text">₹{{ "%.2f"|format(total_expenses) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card dashboard-card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Savings</h5>
+                <h2 class="card-text">₹{{ "%.2f"|format(total_savings) }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card dashboard-card">
+            <div class="card-body">
+                <h5 class="card-title">Add Transaction</h5>
+                <form method="POST" action="{{ url_for('add_transaction') }}">
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Type</label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="income">Income</option>
+                            <option value="expense">Expense</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="number" class="form-control" id="amount" name="amount" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="salary">Salary</option>
+                            <option value="food">Food</option>
+                            <option value="rent">Rent</option>
+                            <option value="transport">Transport</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Transaction</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card dashboard-card">
+            <div class="card-body">
+                <h5 class="card-title">Recent Transactions</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Category</th>
+                                <th>Amount</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions[:5] %}
+                            <tr>
+                                <td>{{ transaction.date }}</td>
+                                <td>{{ transaction.type }}</td>
+                                <td>{{ transaction.category }}</td>
+                                <td>₹{{ "%.2f"|format(transaction.amount) }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteTransaction('{{ transaction._id }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card dashboard-card">
+            <div class="card-body">
+                <h5 class="card-title">Expense Distribution</h5>
+                <div id="pieChart"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card dashboard-card">
+            <div class="card-body">
+                <h5 class="card-title">Monthly Trends</h5>
+                <div id="lineChart"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Prepare data for charts
+    const transactionData = {{ transactions|tojson }};
+    
+    // Pie Chart - Expense Distribution
+    const expenseTransactions = transactionData.filter(t => t.type === 'expense');
+    const categoryTotals = {};
+    expenseTransactions.forEach(t => {
+        categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+    });
+    
+    const pieData = [{
+        values: Object.values(categoryTotals),
+        labels: Object.keys(categoryTotals),
+        type: 'pie'
+    }];
+    
+    Plotly.newPlot('pieChart', pieData, {
+        title: 'Expense Distribution by Category'
+    });
+    
+    // Line Chart - Monthly Trends
+    const monthlyData = {};
+    transactionData.forEach(t => {
+        const month = t.date.substring(0, 7); // YYYY-MM
+        if (!monthlyData[month]) {
+            monthlyData[month] = { income: 0, expense: 0 };
+        }
+        monthlyData[month][t.type] += t.amount;
+    });
+    
+    const months = Object.keys(monthlyData).sort();
+    const incomeData = months.map(m => monthlyData[m].income);
+    const expenseData = months.map(m => monthlyData[m].expense);
+    
+    const lineData = [
+        {
+            x: months,
+            y: incomeData,
+            name: 'Income',
+            type: 'scatter'
+        },
+        {
+            x: months,
+            y: expenseData,
+            name: 'Expense',
+            type: 'scatter'
+        }
+    ];
+    
+    Plotly.newPlot('lineChart', lineData, {
+        title: 'Monthly Income vs Expenses'
+    });
+    
+    function deleteTransaction(id) {
+        if (confirm('Are you sure you want to delete this transaction?')) {
+            window.location.href = `/delete_transaction/${id}`;
+        }
+    }
+</script>
+{% endblock %} 

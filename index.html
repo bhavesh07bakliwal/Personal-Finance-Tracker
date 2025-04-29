@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Finance Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <h1 class="display-4 mb-4">Welcome to Finance Tracker</h1>
+        <p class="lead mb-4">Track your income, expenses, and savings in one place</p>
+        
+        <div class="row mb-5">
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body">
+                        <i class="bi bi-graph-up fs-1 mb-3"></i>
+                        <h3>Track Finances</h3>
+                        <p>Monitor your income and expenses</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body">
+                        <i class="bi bi-pie-chart fs-1 mb-3"></i>
+                        <h3>Visualize Data</h3>
+                        <p>View spending patterns with charts</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body">
+                        <i class="bi bi-shield-lock fs-1 mb-3"></i>
+                        <h3>Secure</h3>
+                        <p>Your data is safe with us</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if not current_user.is_authenticated %}
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-4 gap-3">Login</a>
+            <a href="{{ url_for('register') }}" class="btn btn-outline-secondary btn-lg px-4">Register</a>
+        </div>
+        {% else %}
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg px-4 gap-3">Go to Dashboard</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 
